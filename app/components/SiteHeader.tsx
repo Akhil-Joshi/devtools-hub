@@ -11,6 +11,10 @@ const navItems = [
   { href: "/uuid-generator", label: "UUID" },
   { href: "/timestamp-converter", label: "Timestamp" },
   { href: "/url-encoder", label: "URL Encoder" },
+  // { href: "/privacy-policy", label: "Privacy Policy" },
+  // { href: "/terms-of-service", label: "Terms of Service" },
+  { href: "/contact", label: "Contact" },
+  { href: "/about", label: "About" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -66,7 +70,9 @@ export default function SiteHeader() {
         <button
           type="button"
           className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-800 transition hover:border-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-900 lg:hidden"
-          aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-label={
+            isMenuOpen ? "Close navigation menu" : "Open navigation menu"
+          }
           aria-expanded={isMenuOpen}
           aria-controls="mobile-navigation"
           onClick={() => setIsMenuOpen((current) => !current)}

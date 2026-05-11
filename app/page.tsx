@@ -1,65 +1,69 @@
-import Image from "next/image";
+import Link from "next/link";
+import AdSenseAd from "./components/AdSenseAd";
+
+export const metadata = {
+  title: "DevTools Hub - Free Online Developer Tools",
+  description:
+    "Free online developer tools for developers: JSON formatter, Base64 encoder, UUID generator, timestamp converter, URL tools and more.",
+};
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen px-6 py-10 max-w-5xl mx-auto">
+      <h1 className="text-4xl font-bold mb-3">
+        Free Developer Tools Online 🚀
+      </h1>
+
+      <p className="text-gray-600 mb-8">
+        Fast, free and simple tools for developers. Format JSON, encode Base64,
+        generate UUIDs, convert timestamps and more.
+      </p>
+
+      <AdSenseAd label="Home top" />
+
+      {/* TOOL GRID */}
+      <div className="grid md:grid-cols-2 gap-5">
+        <ToolCard href="/json-formatter" title="JSON Formatter" />
+        <ToolCard href="/base64-encoder" title="Base64 Encoder" />
+        <ToolCard href="/uuid-generator" title="UUID Generator" />
+        <ToolCard href="/timestamp-converter" title="Timestamp Converter" />
+        <ToolCard href="/url-encoder" title="URL Encoder/Decoder" />
+      </div>
+
+      {/* SEO CONTENT (VERY IMPORTANT) */}
+      <section className="mt-12">
+        <h2 className="text-2xl font-semibold mb-3">What is DevTools Hub?</h2>
+
+        <p className="text-gray-600 mb-4">
+          DevTools Hub is a collection of free online developer tools designed
+          to speed up your workflow. Whether you are working with APIs,
+          debugging data, or converting formats, these tools help you save time.
+        </p>
+
+        <h3 className="text-xl font-semibold mb-2">Popular Tools</h3>
+
+        <ul className="list-disc pl-6 text-gray-600">
+          <li>JSON Formatter & Validator</li>
+          <li>Base64 Encode / Decode</li>
+          <li>UUID Generator</li>
+          <li>Timestamp Converter</li>
+          <li>URL Encoder / Decoder</li>
+        </ul>
+      </section>
+
+      <AdSenseAd label="Home bottom" />
+    </main>
+  );
+}
+
+function ToolCard({ href, title }: { href: string; title: string }) {
+  return (
+    <Link
+      href={href}
+      className="p-5 border rounded-xl hover:shadow-md transition"
+    >
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="text-gray-500 text-sm mt-1">Open tool →</p>
+    </Link>
   );
 }

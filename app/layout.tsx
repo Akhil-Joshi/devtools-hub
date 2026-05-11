@@ -3,12 +3,16 @@ import SiteHeader from "./components/SiteHeader";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
 import Link from "next/link";
+import Head from "next/head";
 
 export const metadata = {
   title: "DevTools Hub",
   description: "Free online developer tools",
   verification: {
     google: "wgIDY5lFyDBXCWl7aHXAMjk6P2JIZxnGXiB6E4RLBGc",
+  },
+  other: {
+    "google-adsense-account": "ca-pub-3349653746747061",
   },
 };
 
@@ -24,7 +28,7 @@ export default function RootLayout({
         <Script
           async
           strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXX"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3349653746747061"
           crossOrigin="anonymous"
         />
 

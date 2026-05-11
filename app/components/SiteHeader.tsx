@@ -11,10 +11,11 @@ const navItems = [
   { href: "/uuid-generator", label: "UUID" },
   { href: "/timestamp-converter", label: "Timestamp" },
   { href: "/url-encoder", label: "URL Encoder" },
+  { href: "/typescript-generator", label: "TS Generator" },
   // { href: "/privacy-policy", label: "Privacy Policy" },
   // { href: "/terms-of-service", label: "Terms of Service" },
-  { href: "/contact", label: "Contact" },
-  { href: "/about", label: "About" },
+  // { href: "/contact", label: "Contact" },
+  // { href: "/about", label: "About" },
 ];
 
 function isActivePath(pathname: string, href: string) {
@@ -55,11 +56,10 @@ export default function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
-                  isActive
+                className={`rounded-md px-3 py-2 text-sm font-semibold transition ${isActive
                     ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-50"
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>
@@ -79,19 +79,16 @@ export default function SiteHeader() {
         >
           <span className="relative h-4 w-5" aria-hidden="true">
             <span
-              className={`absolute left-0 top-0 h-0.5 w-5 rounded bg-current transition ${
-                isMenuOpen ? "translate-y-[7px] rotate-45" : ""
-              }`}
+              className={`absolute left-0 top-0 h-0.5 w-5 rounded bg-current transition ${isMenuOpen ? "translate-y-[7px] rotate-45" : ""
+                }`}
             />
             <span
-              className={`absolute left-0 top-[7px] h-0.5 w-5 rounded bg-current transition ${
-                isMenuOpen ? "opacity-0" : ""
-              }`}
+              className={`absolute left-0 top-[7px] h-0.5 w-5 rounded bg-current transition ${isMenuOpen ? "opacity-0" : ""
+                }`}
             />
             <span
-              className={`absolute bottom-0 left-0 h-0.5 w-5 rounded bg-current transition ${
-                isMenuOpen ? "-translate-y-[7px] -rotate-45" : ""
-              }`}
+              className={`absolute bottom-0 left-0 h-0.5 w-5 rounded bg-current transition ${isMenuOpen ? "-translate-y-[7px] -rotate-45" : ""
+                }`}
             />
           </span>
         </button>
@@ -99,9 +96,8 @@ export default function SiteHeader() {
 
       <div
         id="mobile-navigation"
-        className={`mx-auto max-w-7xl overflow-hidden transition-[max-height,padding] duration-200 lg:hidden ${
-          isMenuOpen ? "max-h-96 pb-3" : "max-h-0 pb-0"
-        }`}
+        className={`mx-auto max-w-7xl overflow-hidden transition-[max-height,padding] duration-200 lg:hidden ${isMenuOpen ? "max-h-96 pb-3" : "max-h-0 pb-0"
+          }`}
       >
         <nav
           className="grid gap-1 rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900"
@@ -116,11 +112,10 @@ export default function SiteHeader() {
                 href={item.href}
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => setIsMenuOpen(false)}
-                className={`rounded-md px-3 py-2.5 text-sm font-semibold transition ${
-                  isActive
+                className={`rounded-md px-3 py-2.5 text-sm font-semibold transition ${isActive
                     ? "bg-slate-950 text-white shadow-sm dark:bg-slate-100 dark:text-slate-950"
                     : "text-slate-700 hover:bg-white hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50"
-                }`}
+                  }`}
               >
                 {item.label}
               </Link>

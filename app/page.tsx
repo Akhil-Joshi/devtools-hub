@@ -28,6 +28,7 @@ export default function Home() {
         <ToolCard href="/uuid-generator" title="UUID Generator" />
         <ToolCard href="/timestamp-converter" title="Timestamp Converter" />
         <ToolCard href="/url-encoder" title="URL Encoder/Decoder" />
+        <ToolCard href="/typescript-generator" title="TypeScript Generator" />
       </div>
 
       {/* SEO CONTENT (VERY IMPORTANT) */}
@@ -48,6 +49,7 @@ export default function Home() {
           <li>UUID Generator</li>
           <li>Timestamp Converter</li>
           <li>URL Encoder / Decoder</li>
+          <li>JSON to TypeScript Generator</li>
         </ul>
       </section>
 

@@ -22,38 +22,38 @@ export default function AdSenseAd({
   slot = "XXXXXXXXXX",
 }: AdSenseAdProps) {
   const adRef = useRef<HTMLModElement | null>(null);
-  const [isHidden, setIsHidden] = useState(false);
+  // const [isHidden, setIsHidden] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  // useEffect(() => {
+  //   if (typeof window === "undefined") return;
 
-    try {
-      window.adsbygoogle = window.adsbygoogle || [];
-      window.adsbygoogle.push({});
-    } catch (err) {
-      console.warn("AdSense error:", err);
-    }
+  //   try {
+  //     window.adsbygoogle = window.adsbygoogle || [];
+  //     window.adsbygoogle.push({});
+  //   } catch (err) {
+  //     console.warn("AdSense error:", err);
+  //   }
 
-    const timeout = window.setTimeout(() => {
-      const ad = adRef.current;
+  //   const timeout = window.setTimeout(() => {
+  //     const ad = adRef.current;
 
-      if (!ad) {
-        setIsHidden(true);
-        return;
-      }
+  //     if (!ad) {
+  //       setIsHidden(true);
+  //       return;
+  //     }
 
-      const status = ad.getAttribute("data-ad-status");
-      const hasVisibleSize = ad.offsetHeight > 0 && ad.offsetWidth > 0;
+  //     const status = ad.getAttribute("data-ad-status");
+  //     const hasVisibleSize = ad.offsetHeight > 0 && ad.offsetWidth > 0;
 
-      if (status === "unfilled" || !hasVisibleSize) {
-        setIsHidden(true);
-      }
-    }, 2500);
+  //     if (status === "unfilled" || !hasVisibleSize) {
+  //       setIsHidden(true);
+  //     }
+  //   }, 2500);
 
-    return () => window.clearTimeout(timeout);
-  }, []);
+  //   return () => window.clearTimeout(timeout);
+  // }, []);
 
-  if (isHidden) return null;
+  // if (isHidden) return null;
 
   return (
     <aside
@@ -68,7 +68,7 @@ export default function AdSenseAd({
         ref={adRef}
         className="adsbygoogle"
         style={{ display: "block", minHeight: 90 }}
-        data-ad-client="ca-pub-XXXXXXXXXXXX"
+        data-ad-client="ca-pub-3349653746747061"
         data-ad-slot={slot}
         data-ad-format={format}
         data-full-width-responsive="true"

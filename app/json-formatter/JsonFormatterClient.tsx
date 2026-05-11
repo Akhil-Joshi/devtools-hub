@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 
 type JsonValue =
   | string
@@ -155,9 +155,8 @@ function PrimitiveValue({ value }: { value: JsonValue }) {
 function Chevron({ expanded }: { expanded: boolean }) {
   return (
     <span
-      className={`h-2.5 w-2.5 border-b-2 border-r-2 transition-transform ${
-        expanded ? "rotate-45" : "-rotate-45"
-      }`}
+      className={`h-2.5 w-2.5 border-b-2 border-r-2 transition-transform ${expanded ? "rotate-45" : "-rotate-45"
+        }`}
       aria-hidden="true"
     />
   );
@@ -270,6 +269,39 @@ function JsonTreeNode({
   );
 }
 
+function countNodes(value: JsonValue): { keys: number; values: number } {
+  if (Array.isArray(value)) {
+    let k = 0, v = 0;
+    value.forEach((item) => { const c = countNodes(item); k += c.keys; v += c.values; });
+    return { keys: k, values: v + value.length };
+  }
+  if (isRecord(value)) {
+    let k = 0, v = 0;
+    Object.values(value).forEach((val) => { const c = countNodes(val); k += c.keys; v += c.values; });
+    return { keys: k + Object.keys(value).length, values: v };
+  }
+  return { keys: 0, values: 1 };
+}
+
+function syntaxHighlight(json: string) {
+  return json.replace(
+    /("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    (match) => {
+      let cls = "text-blue-700 dark:text-blue-300"; // number
+      if (/^"/.test(match)) {
+        cls = match.endsWith(":")
+          ? "text-slate-800 dark:text-slate-200 font-semibold" // key
+          : "text-emerald-700 dark:text-emerald-300"; // string
+      } else if (/true|false/.test(match)) {
+        cls = "text-amber-700 dark:text-amber-300";
+      } else if (/null/.test(match)) {
+        cls = "text-slate-500 dark:text-slate-400 italic";
+      }
+      return `<span class="${cls}">${match}</span>`;
+    },
+  );
+}
+
 export default function JsonFormatterClient() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -277,8 +309,11 @@ export default function JsonFormatterClient() {
   const [error, setError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("tree");
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [copied, setCopied] = useState(false);
+  const [search, setSearch] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  const formatJSON = () => {
+  const formatJSON = useCallback(() => {
     try {
       const parsed = JSON.parse(input) as JsonValue;
       setOutput(JSON.stringify(parsed, null, 2));
@@ -286,15 +321,53 @@ export default function JsonFormatterClient() {
       setExpandedPaths(getInitialExpandedPaths(parsed));
       setViewMode("tree");
       setError("");
-    } catch {
-      setError("Invalid JSON");
+    } catch (e) {
+      const msg = e instanceof SyntaxError ? e.message : "Invalid JSON";
+      setError(msg);
       setOutput("");
       setParsedJson(null);
       setExpandedPaths(new Set());
     }
-  };
+  }, [input]);
 
-  const minifyJSON = () => {
+  const loadSample = useCallback(() => {
+    const sample = JSON.stringify(
+      {
+        id: 1,
+        name: "John Doe",
+        email: "john@example.com",
+        isActive: true,
+        address: {
+          street: "123 Main St",
+          city: "Springfield",
+          zip: "62704",
+        },
+        roles: ["admin", "editor"],
+        posts: [
+          {
+            id: 101,
+            title: "Hello World",
+            tags: ["intro", "welcome"],
+            published: true,
+          },
+          {
+            id: 102,
+            title: "Second Post",
+            tags: ["update"],
+            published: false,
+          },
+        ],
+      },
+      null,
+      2,
+    );
+    setInput(sample);
+    setOutput("");
+    setError("");
+
+  }, []);
+
+  const minifyJSON = useCallback(() => {
     try {
       const parsed = JSON.parse(input) as JsonValue;
       setOutput(JSON.stringify(parsed));
@@ -302,47 +375,69 @@ export default function JsonFormatterClient() {
       setExpandedPaths(getInitialExpandedPaths(parsed));
       setViewMode("raw");
       setError("");
-    } catch {
-      setError("Invalid JSON");
+    } catch (e) {
+      const msg = e instanceof SyntaxError ? e.message : "Invalid JSON";
+      setError(msg);
       setOutput("");
       setParsedJson(null);
       setExpandedPaths(new Set());
     }
-  };
+  }, [input]);
 
-  const copy = () => {
-    if (!output) {
-      return;
-    }
-
+  const copy = useCallback(() => {
+    if (!output) return;
     navigator.clipboard.writeText(output);
-  };
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [output]);
+
+  const clear = useCallback(() => {
+    setInput("");
+    setOutput("");
+    setParsedJson(null);       // 🔥 clear tree data
+    setExpandedPaths(new Set()); // 🔥 reset expansion
+    setError("");
+  }, []);
+
+  const download = useCallback(() => {
+    if (!output) return;
+    const blob = new Blob([output], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "formatted.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [output]);
+
+  const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === "string") setInput(text);
+    };
+    reader.readAsText(file);
+  }, []);
 
   const togglePath = (path: string) => {
     setExpandedPaths((current) => {
       const next = new Set(current);
-
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-
+      if (next.has(path)) { next.delete(path); } else { next.add(path); }
       return next;
     });
   };
 
   const expandAll = () => {
-    if (parsedJson) {
-      setExpandedPaths(getAllExpandablePaths(parsedJson));
-    }
+    if (parsedJson) setExpandedPaths(getAllExpandablePaths(parsedJson));
   };
 
   const collapseAll = () => {
-    setExpandedPaths(
-      new Set(parsedJson && isExpandable(parsedJson) ? ["root"] : []),
-    );
+    setExpandedPaths(new Set(parsedJson && isExpandable(parsedJson) ? ["root"] : []));
   };
+
+  const stats = parsedJson ? countNodes(parsedJson) : null;
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
@@ -355,14 +450,24 @@ export default function JsonFormatterClient() {
 
         <div className="space-y-4 p-4">
           <textarea
+            id="json-input"
             className="h-[28rem] w-full resize-y rounded-md border border-slate-300 bg-slate-50 p-3 font-mono text-sm text-slate-900 caret-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:caret-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:bg-slate-900"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Paste JSON here..."
           />
 
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={handleFile}
+          />
+
           <div className="flex flex-wrap gap-3">
             <button
+              id="json-format-btn"
               type="button"
               onClick={formatJSON}
               className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
@@ -371,20 +476,50 @@ export default function JsonFormatterClient() {
             </button>
 
             <button
+              id="json-sample-btn"
               type="button"
-              onClick={minifyJSON}
+              onClick={loadSample}
               className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900"
             >
-              Minify
+              Load Sample
             </button>
 
             <button
+              id="json-upload-btn"
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900"
+            >
+              Upload File
+            </button>
+
+            <button
+              id="json-copy-btn"
               type="button"
               onClick={copy}
               disabled={!output}
               className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-800 dark:disabled:text-slate-500"
             >
-              Copy Output
+              {copied ? "Copied!" : "Copy Output"}
+            </button>
+
+            <button
+              id="json-download-btn"
+              type="button"
+              onClick={download}
+              disabled={!output}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900 dark:disabled:text-slate-600"
+            >
+              Download
+            </button>
+
+            <button
+              id="json-clear-btn"
+              type="button"
+              onClick={clear}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:text-slate-200 dark:hover:border-red-500 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+            >
+              Clear
             </button>
           </div>
 
@@ -403,26 +538,32 @@ export default function JsonFormatterClient() {
           </h2>
 
           <div className="flex flex-wrap gap-2">
+
+            <button
+              type="button"
+              onClick={minifyJSON}
+              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-900"
+            >
+              Minify
+            </button>
             <div className="flex rounded-md border border-slate-300 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-950">
               <button
                 type="button"
                 onClick={() => setViewMode("tree")}
-                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${
-                  viewMode === "tree"
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
-                    : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
-                }`}
+                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${viewMode === "tree"
+                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
+                  : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
               >
                 Tree
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("raw")}
-                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${
-                  viewMode === "raw"
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
-                    : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
-                }`}
+                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${viewMode === "raw"
+                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
+                  : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
               >
                 Raw
               </button>

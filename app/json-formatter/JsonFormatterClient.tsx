@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, lazy, Suspense } from "react";
+
+const JsonGraphView = lazy(() => import("./JsonGraphView"));
 
 type JsonValue =
   | string
@@ -10,7 +12,7 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-type ViewMode = "tree" | "raw";
+type ViewMode = "tree" | "raw" | "graph";
 
 function isRecord(value: JsonValue): value is { [key: string]: JsonValue } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -547,26 +549,19 @@ export default function JsonFormatterClient() {
               Minify
             </button>
             <div className="flex rounded-md border border-slate-300 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-950">
-              <button
-                type="button"
-                onClick={() => setViewMode("tree")}
-                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${viewMode === "tree"
-                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
-                  : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
-                  }`}
-              >
-                Tree
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("raw")}
-                className={`rounded px-3 py-1.5 text-sm font-semibold transition ${viewMode === "raw"
-                  ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
-                  : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
-                  }`}
-              >
-                Raw
-              </button>
+              {(["tree", "graph", "raw"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded px-3 py-1.5 text-sm font-semibold capitalize transition ${viewMode === mode
+                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
+                    : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                    }`}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
 
             <button
@@ -589,10 +584,10 @@ export default function JsonFormatterClient() {
           </div>
         </div>
 
-        <div className="h-[34rem] overflow-auto bg-slate-100 p-4 dark:bg-slate-950">
+        <div className={`h-[34rem] overflow-auto bg-slate-100 dark:bg-slate-950 ${viewMode === "graph" ? "relative overflow-hidden" : "p-4"}`}>
           {!parsedJson && !output ? (
             <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-              Format valid JSON to inspect it as a collapsible tree.
+              Format valid JSON to inspect it as a collapsible tree or graph.
             </div>
           ) : viewMode === "tree" && parsedJson ? (
             <div className="min-w-max rounded-md border border-slate-200 bg-white p-2 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -605,6 +600,12 @@ export default function JsonFormatterClient() {
                 isRoot
               />
             </div>
+          ) : viewMode === "graph" && parsedJson ? (
+            <Suspense fallback={
+              <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading graph…</div>
+            }>
+              <JsonGraphView data={parsedJson} />
+            </Suspense>
           ) : (
             <pre className="min-h-full min-w-max rounded-md border border-slate-200 bg-white p-4 font-mono text-sm leading-6 text-slate-800 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100">
               {output}

@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useRef, lazy, Suspense } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+  useEffect,
+} from "react";
 
 const JsonGraphView = lazy(() => import("./JsonGraphView"));
 
@@ -157,8 +164,9 @@ function PrimitiveValue({ value }: { value: JsonValue }) {
 function Chevron({ expanded }: { expanded: boolean }) {
   return (
     <span
-      className={`h-2.5 w-2.5 border-b-2 border-r-2 transition-transform ${expanded ? "rotate-45" : "-rotate-45"
-        }`}
+      className={`h-2 w-2 border-b-2 border-r-2 transition-transform ${
+        expanded ? "rotate-45" : "-rotate-45"
+      }`}
       aria-hidden="true"
     />
   );
@@ -194,27 +202,27 @@ function JsonTreeNode({
       className={
         isRoot
           ? ""
-          : "relative ml-4 border-l-2 border-slate-200 pl-4 dark:border-slate-700"
+          : "relative ml-3 border-l border-slate-200 pl-3 dark:border-slate-700"
       }
     >
       {!isRoot && (
-        <span className="absolute left-0 top-4 h-px w-4 bg-slate-200 dark:bg-slate-700" />
+        <span className="absolute left-0 top-3.5 h-px w-3 bg-slate-200 dark:bg-slate-700" />
       )}
 
       <div
-        className={`group flex min-h-9 items-center gap-2 rounded-md border px-2.5 py-1.5 font-mono text-sm shadow-sm transition ${tone.row}`}
+        className={`group flex min-h-7 items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-[13px] transition ${tone.row}`}
       >
         {expandable ? (
           <button
             type="button"
             onClick={() => onToggle(path)}
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded transition hover:scale-105 ${tone.icon}`}
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition hover:scale-105 ${tone.icon}`}
             aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
           >
             <Chevron expanded={expanded} />
           </button>
         ) : (
-          <span className="h-6 w-6 shrink-0" />
+          <span className="h-5 w-5 shrink-0" />
         )}
 
         {!isRoot && (
@@ -229,7 +237,7 @@ function JsonTreeNode({
               {Array.isArray(value) ? "[" : "{"}
             </span>
             <span
-              className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${tone.badge}`}
+              className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${tone.badge}`}
             >
               {count} {Array.isArray(value) ? "items" : "keys"}
             </span>
@@ -258,11 +266,13 @@ function JsonTreeNode({
               />
             ))
           ) : (
-            <div className="ml-12 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-1.5 font-mono text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+            <div className="ml-10 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-1 font-mono text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Empty {Array.isArray(value) ? "array" : "object"}
             </div>
           )}
-          <div className={`ml-9 px-2 py-1 font-mono text-sm font-bold ${tone.bracket}`}>
+          <div
+            className={`ml-7 px-2 py-0.5 font-mono text-[13px] font-bold ${tone.bracket}`}
+          >
             {Array.isArray(value) ? "]" : "}"}
           </div>
         </div>
@@ -273,13 +283,23 @@ function JsonTreeNode({
 
 function countNodes(value: JsonValue): { keys: number; values: number } {
   if (Array.isArray(value)) {
-    let k = 0, v = 0;
-    value.forEach((item) => { const c = countNodes(item); k += c.keys; v += c.values; });
+    let k = 0,
+      v = 0;
+    value.forEach((item) => {
+      const c = countNodes(item);
+      k += c.keys;
+      v += c.values;
+    });
     return { keys: k, values: v + value.length };
   }
   if (isRecord(value)) {
-    let k = 0, v = 0;
-    Object.values(value).forEach((val) => { const c = countNodes(val); k += c.keys; v += c.values; });
+    let k = 0,
+      v = 0;
+    Object.values(value).forEach((val) => {
+      const c = countNodes(val);
+      k += c.keys;
+      v += c.values;
+    });
     return { keys: k + Object.keys(value).length, values: v };
   }
   return { keys: 0, values: 1 };
@@ -315,7 +335,14 @@ export default function JsonFormatterClient() {
   const [search, setSearch] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const formatJSON = useCallback(() => {
+  useEffect(() => {
+    if (!input.trim()) {
+      setOutput("");
+      setParsedJson(null);
+      setExpandedPaths(new Set());
+      setError("");
+      return;
+    }
     try {
       const parsed = JSON.parse(input) as JsonValue;
       setOutput(JSON.stringify(parsed, null, 2));
@@ -366,7 +393,6 @@ export default function JsonFormatterClient() {
     setInput(sample);
     setOutput("");
     setError("");
-
   }, []);
 
   const minifyJSON = useCallback(() => {
@@ -396,7 +422,7 @@ export default function JsonFormatterClient() {
   const clear = useCallback(() => {
     setInput("");
     setOutput("");
-    setParsedJson(null);       // 🔥 clear tree data
+    setParsedJson(null); // 🔥 clear tree data
     setExpandedPaths(new Set()); // 🔥 reset expansion
     setError("");
   }, []);
@@ -426,7 +452,11 @@ export default function JsonFormatterClient() {
   const togglePath = (path: string) => {
     setExpandedPaths((current) => {
       const next = new Set(current);
-      if (next.has(path)) { next.delete(path); } else { next.add(path); }
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
       return next;
     });
   };
@@ -436,13 +466,15 @@ export default function JsonFormatterClient() {
   };
 
   const collapseAll = () => {
-    setExpandedPaths(new Set(parsedJson && isExpandable(parsedJson) ? ["root"] : []));
+    setExpandedPaths(
+      new Set(parsedJson && isExpandable(parsedJson) ? ["root"] : []),
+    );
   };
 
   const stats = parsedJson ? countNodes(parsedJson) : null;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-base font-semibold text-slate-950 dark:text-slate-50">
@@ -468,15 +500,6 @@ export default function JsonFormatterClient() {
           />
 
           <div className="flex flex-wrap gap-3">
-            <button
-              id="json-format-btn"
-              type="button"
-              onClick={formatJSON}
-              className="rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
-            >
-              Format
-            </button>
-
             <button
               id="json-sample-btn"
               type="button"
@@ -540,7 +563,6 @@ export default function JsonFormatterClient() {
           </h2>
 
           <div className="flex flex-wrap gap-2">
-
             <button
               type="button"
               onClick={minifyJSON}
@@ -554,10 +576,11 @@ export default function JsonFormatterClient() {
                   key={mode}
                   type="button"
                   onClick={() => setViewMode(mode)}
-                  className={`rounded px-3 py-1.5 text-sm font-semibold capitalize transition ${viewMode === mode
-                    ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
-                    : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
-                    }`}
+                  className={`rounded px-3 py-1.5 text-sm font-semibold capitalize transition ${
+                    viewMode === mode
+                      ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
+                      : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
                 >
                   {mode}
                 </button>
@@ -584,7 +607,9 @@ export default function JsonFormatterClient() {
           </div>
         </div>
 
-        <div className={`h-[34rem] overflow-auto bg-slate-100 dark:bg-slate-950 ${viewMode === "graph" ? "relative overflow-hidden" : "p-4"}`}>
+        <div
+          className={`h-[34rem] overflow-auto bg-slate-100 dark:bg-slate-950 ${viewMode === "graph" ? "relative overflow-hidden" : "p-4"}`}
+        >
           {!parsedJson && !output ? (
             <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Format valid JSON to inspect it as a collapsible tree or graph.
@@ -601,9 +626,13 @@ export default function JsonFormatterClient() {
               />
             </div>
           ) : viewMode === "graph" && parsedJson ? (
-            <Suspense fallback={
-              <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading graph…</div>
-            }>
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">
+                  Loading graph…
+                </div>
+              }
+            >
               <JsonGraphView data={parsedJson} />
             </Suspense>
           ) : (

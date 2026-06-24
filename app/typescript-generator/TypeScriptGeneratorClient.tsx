@@ -1,10 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, lazy, Suspense } from "react";
+
+const JsonGraphView = lazy(() => import("../json-formatter/JsonGraphView"));
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
+
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 /** Represents either a resolved TS primitive or a reference to another interface. */
 type TsFieldType =
@@ -302,12 +312,15 @@ export default function TypeScriptGeneratorClient() {
   const [input, setInput] = useState("");
   const [rootName, setRootName] = useState("Root");
   const [output, setOutput] = useState("");
+  const [parsedJson, setParsedJson] = useState<JsonValue | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<"code" | "graph">("code");
 
   const generate = useCallback(() => {
     try {
-      const parsed = JSON.parse(input);
+      const parsed = JSON.parse(input) as JsonValue;
+      setParsedJson(parsed);
       const interfaces = generateInterfaces(parsed, rootName || "Root");
       const result = interfacesToString(interfaces);
 
@@ -323,6 +336,7 @@ export default function TypeScriptGeneratorClient() {
     } catch {
       setError("Invalid JSON — please check your input and try again.");
       setOutput("");
+      setParsedJson(null);
     }
   }, [input, rootName]);
 
@@ -336,6 +350,7 @@ export default function TypeScriptGeneratorClient() {
   const clear = useCallback(() => {
     setInput("");
     setOutput("");
+    setParsedJson(null);
     setError("");
   }, []);
 
@@ -379,7 +394,7 @@ export default function TypeScriptGeneratorClient() {
   const outputLines = output ? output.split("\n") : [];
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
       {/* ---- INPUT PANEL ---- */}
       <section className="rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-950">
         <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
@@ -465,19 +480,45 @@ export default function TypeScriptGeneratorClient() {
             TypeScript Output
           </h2>
 
-          {output && (
-            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-              {interfaces(output)} interface{interfaces(output) !== 1 ? "s" : ""}{" "}
-              generated
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {output && viewMode === "code" && (
+              <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
+                {interfaces(output)} interface{interfaces(output) !== 1 ? "s" : ""}{" "}
+                generated
+              </span>
+            )}
+            <div className="flex rounded-md border border-slate-300 bg-slate-100 p-1 dark:border-slate-700 dark:bg-slate-950">
+              {(["code", "graph"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  className={`rounded px-3 py-1.5 text-sm font-semibold capitalize transition ${
+                    viewMode === mode
+                      ? "bg-white text-slate-950 shadow-sm dark:bg-slate-800 dark:text-slate-50"
+                      : "text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <div className="h-[34rem] overflow-auto bg-slate-100 p-4 dark:bg-slate-950">
-          {!output ? (
+        <div className={`h-[34rem] overflow-auto bg-slate-100 dark:bg-slate-950 ${viewMode === "graph" ? "relative overflow-hidden" : "p-4"}`}>
+          {!output && viewMode === "code" ? (
             <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
               Paste JSON and hit &ldquo;Generate&rdquo; to see TypeScript
               interfaces here.
+            </div>
+          ) : viewMode === "graph" && parsedJson ? (
+            <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-slate-500 dark:text-slate-400">Loading graph…</div>}>
+              <JsonGraphView data={parsedJson} />
+            </Suspense>
+          ) : viewMode === "graph" && !parsedJson ? (
+            <div className="flex h-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-white px-4 text-center text-sm font-medium text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+              Generate TypeScript to view the JSON graph.
             </div>
           ) : (
             <div className="min-w-max rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

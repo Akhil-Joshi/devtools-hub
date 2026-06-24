@@ -53,14 +53,17 @@ const DARK_COLORS = {
 /* ------------------------------------------------------------------ */
 
 const NODE_W = 220;
-const NODE_HEAD = 28;
-const ROW_H = 24;
-const PAD = 12;
-const H_GAP = 60;
-const V_GAP = 20;
+const NODE_HEAD = 32;
+const ROW_H = 28;
+const PAD = 20;
+const H_GAP = 80;
+const V_GAP = 24;
 
-function measureNode(n: { rows: number }): { w: number; h: number } {
-  return { w: NODE_W, h: NODE_HEAD + Math.max(n.rows, 1) * ROW_H + PAD };
+function measureNode(n: { rows: number, maxTextLen?: number }): { w: number; h: number } {
+  const minW = 200;
+  const maxTextLen = n.maxTextLen || 15;
+  const w = Math.max(minW, maxTextLen * 8.5 + 48);
+  return { w, h: NODE_HEAD + Math.max(n.rows, 1) * ROW_H + PAD };
 }
 
 function buildGraph(json: JsonValue): GraphNode[] {
@@ -71,21 +74,25 @@ function buildGraph(json: JsonValue): GraphNode[] {
     const id = `n${idCounter++}`;
 
     if (value === null) {
-      const m = measureNode({ rows: 1 });
+      const len = Math.max(label.length, 4);
+      const m = measureNode({ rows: 1, maxTextLen: len });
       nodes.push({ id, label, value: "null", type: "null", x: 0, y: 0, ...m, children: [] });
       return id;
     }
 
     if (typeof value === "string") {
-      const display = value.length > 24 ? value.slice(0, 22) + "…" : value;
-      const m = measureNode({ rows: 1 });
+      const display = value.length > 100 ? value.slice(0, 97) + "…" : value;
+      const len = Math.max(label.length, display.length);
+      const m = measureNode({ rows: 1, maxTextLen: len });
       nodes.push({ id, label, value: `"${display}"`, type: "string", x: 0, y: 0, ...m, children: [] });
       return id;
     }
 
     if (typeof value === "number" || typeof value === "boolean") {
-      const m = measureNode({ rows: 1 });
-      nodes.push({ id, label, value: String(value), type: typeof value as "number" | "boolean", x: 0, y: 0, ...m, children: [] });
+      const valStr = String(value);
+      const len = Math.max(label.length, valStr.length);
+      const m = measureNode({ rows: 1, maxTextLen: len });
+      nodes.push({ id, label, value: valStr, type: typeof value as "number" | "boolean", x: 0, y: 0, ...m, children: [] });
       return id;
     }
 
@@ -94,11 +101,12 @@ function buildGraph(json: JsonValue): GraphNode[] {
       value.forEach((item, i) => {
         childIds.push(walk(item, `[${i}]`));
       });
-      const rows = value.length === 0 ? 1 : 1;
-      const m = measureNode({ rows });
+      const rows = value.length === 0 ? 1 : value.length;
+      const len = Math.max(label.length, 15);
+      const m = measureNode({ rows, maxTextLen: len });
       nodes.push({
         id, label, value: `Array [${value.length}]`, type: "array",
-        x: 0, y: 0, ...m, children: childIds,
+        x: 0, y: 0, w: m.w, h: m.h, children: childIds,
       });
       return id;
     }
@@ -106,14 +114,16 @@ function buildGraph(json: JsonValue): GraphNode[] {
     if (typeof value === "object") {
       const keys = Object.keys(value);
       const childIds: string[] = [];
+      let maxKeyLen = label.length;
       keys.forEach((key) => {
         childIds.push(walk((value as Record<string, JsonValue>)[key], key));
+        maxKeyLen = Math.max(maxKeyLen, key.length);
       });
-      const rows = keys.length === 0 ? 1 : Math.min(keys.length, 6);
-      const m = measureNode({ rows });
+      const rows = keys.length === 0 ? 1 : keys.length;
+      const m = measureNode({ rows, maxTextLen: maxKeyLen });
       nodes.push({
         id, label, value: `Object {${keys.length}}`, type: "object",
-        x: 0, y: 0, w: m.w, h: NODE_HEAD + rows * ROW_H + PAD, children: childIds,
+        x: 0, y: 0, w: m.w, h: m.h, children: childIds,
       });
       return id;
     }
@@ -225,7 +235,7 @@ function drawGraph(
       if (!child) return;
 
       const fromX = node.x + node.w;
-      const fromY = node.y + NODE_HEAD + (Math.min(ci, 5)) * ROW_H + ROW_H / 2;
+      const fromY = node.y + NODE_HEAD + ci * ROW_H + ROW_H / 2;
       const toX = child.x;
       const toY = child.y + child.h / 2;
 
@@ -290,8 +300,8 @@ function drawGraph(
     ctx.fillStyle = c.text;
     ctx.font = "bold 11px ui-monospace, SFMono-Regular, monospace";
     ctx.textBaseline = "middle";
-    const headerLabel = node.label.length > 20 ? node.label.slice(0, 18) + "…" : node.label;
-    ctx.fillText(headerLabel, node.x + 8, node.y + NODE_HEAD / 2);
+    const headerLabel = node.label.length > 100 ? node.label.slice(0, 97) + "…" : node.label;
+    ctx.fillText(headerLabel, node.x + 12, node.y + NODE_HEAD / 2);
 
     // Type badge in header
     const badge = node.type === "object" ? "{}" : node.type === "array" ? "[]" : node.type;
@@ -311,37 +321,35 @@ function drawGraph(
 
     if (node.type === "object") {
       const keys = parentKeys.get(node.id) || [];
-      keys.slice(0, 6).forEach((key, i) => {
-        const rowY = node.y + NODE_HEAD + i * ROW_H + ROW_H / 2 + 2;
+      keys.forEach((key, i) => {
+        const rowY = node.y + NODE_HEAD + i * ROW_H + ROW_H / 2;
         ctx.fillStyle = isDark ? "#c7d2fe" : "#4338ca";
-        ctx.fillText(key, node.x + 8, rowY);
+        ctx.fillText(key, node.x + 12, rowY);
         ctx.beginPath();
         ctx.arc(node.x + node.w, rowY, 3, 0, Math.PI * 2);
         ctx.fillStyle = c.border;
         ctx.fill();
       });
-      if (keys.length > 6) {
-        const rowY = node.y + NODE_HEAD + 5 * ROW_H + ROW_H / 2 + 2;
-        ctx.fillStyle = isDark ? "#94a3b8" : "#64748b";
-        ctx.fillText(`+${keys.length - 6} more…`, node.x + 8, rowY);
-      }
     } else if (node.type === "array") {
-      const rowY = node.y + NODE_HEAD + ROW_H / 2 + 2;
-      ctx.fillStyle = isDark ? "#bae6fd" : "#0369a1";
-      const countMatch = node.value.match(/\[(\d+)\]/);
-      ctx.fillText(countMatch ? `${countMatch[1]} items` : node.value, node.x + 8, rowY);
-      node.children.slice(0, 6).forEach((_, i) => {
-        const dotY = node.y + NODE_HEAD + i * ROW_H + ROW_H / 2 + 2;
-        ctx.beginPath();
-        ctx.arc(node.x + node.w, dotY, 3, 0, Math.PI * 2);
-        ctx.fillStyle = c.border;
-        ctx.fill();
-      });
+      if (node.children.length === 0) {
+        const rowY = node.y + NODE_HEAD + ROW_H / 2;
+        ctx.fillStyle = isDark ? "#bae6fd" : "#0369a1";
+        ctx.fillText("0 items", node.x + 12, rowY);
+      } else {
+        node.children.forEach((_, i) => {
+          const rowY = node.y + NODE_HEAD + i * ROW_H + ROW_H / 2;
+          ctx.fillStyle = isDark ? "#bae6fd" : "#0369a1";
+          ctx.fillText(`[${i}]`, node.x + 12, rowY);
+          ctx.beginPath();
+          ctx.arc(node.x + node.w, rowY, 3, 0, Math.PI * 2);
+          ctx.fillStyle = c.border;
+          ctx.fill();
+        });
+      }
     } else {
-      const rowY = node.y + NODE_HEAD + ROW_H / 2 + 2;
+      const rowY = node.y + NODE_HEAD + ROW_H / 2;
       ctx.fillStyle = c.text;
-      const display = node.value.length > 26 ? node.value.slice(0, 24) + "…" : node.value;
-      ctx.fillText(display, node.x + 8, rowY);
+      ctx.fillText(node.value, node.x + 12, rowY);
     }
 
     // Left connector dot
@@ -388,28 +396,22 @@ export default function JsonGraphView({ data }: { data: JsonValue }) {
     walkMap(data);
     parentKeysRef.current = pkMap;
 
-    // Auto-fit: scale to fill the viewport width; never shrink below 0.7 or above 1.0
+    // Auto-fit: initial focus on the root node
     if (nodes.length > 0) {
       const container = containerRef.current;
       if (container) {
-        const cw = container.clientWidth;
         const ch = container.clientHeight;
-
-        let maxX = 0, maxY = 0;
-        nodes.forEach((n) => {
-          maxX = Math.max(maxX, n.x + n.w + 60);
-          maxY = Math.max(maxY, n.y + n.h + 60);
-        });
-
-        // Fit width first so the root node is always visible at a comfortable size
-        const scaleByWidth = (cw - 80) / maxX;
-        const scaleByHeight = (ch - 80) / maxY;
-        // Prefer the width-driven scale; clamp between 0.65 and 1.15
-        const s = Math.min(scaleByWidth, scaleByHeight, 1.15);
-        const finalScale = Math.max(s, 0.65);
+        const rootNode = nodes[nodes.length - 1]; // Root is always the last node added
+        
+        const finalScale = 1; // 100% scale for readability
+        
+        // Center the root node vertically
+        const targetOffsetY = ch / 2 - (rootNode.y + rootNode.h / 2) * finalScale;
+        // Position root node slightly off the left edge
+        const targetOffsetX = 40 - rootNode.x * finalScale;
 
         setScale(finalScale);
-        setOffset({ x: 24, y: 24 });
+        setOffset({ x: targetOffsetX, y: targetOffsetY });
       }
     }
   }, [data]);
@@ -481,8 +483,17 @@ export default function JsonGraphView({ data }: { data: JsonValue }) {
   const zoomIn = () => setScale((s) => Math.min(s * 1.2, 3));
   const zoomOut = () => setScale((s) => Math.max(s * 0.8, 0.15));
   const resetView = useCallback(() => {
-    setScale(1);
-    setOffset({ x: 24, y: 24 });
+    if (nodesRef.current.length > 0 && containerRef.current) {
+      const ch = containerRef.current.clientHeight;
+      const rootNode = nodesRef.current[nodesRef.current.length - 1];
+      const targetOffsetY = ch / 2 - (rootNode.y + rootNode.h / 2);
+      const targetOffsetX = 40 - rootNode.x;
+      setScale(1);
+      setOffset({ x: targetOffsetX, y: targetOffsetY });
+    } else {
+      setScale(1);
+      setOffset({ x: 40, y: 40 });
+    }
   }, []);
 
   return (

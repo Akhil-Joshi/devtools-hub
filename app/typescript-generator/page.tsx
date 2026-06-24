@@ -10,18 +10,17 @@ export const metadata = {
 export default function Page() {
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6">
+      <div className="mb-6 flex flex-col items-baseline gap-2 sm:flex-row sm:gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-950 dark:text-slate-50">
           TypeScript Generator
         </h1>
-
-        <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
-          Paste JSON and instantly generate TypeScript interfaces and type
-          definitions.
+        <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+        <p className="text-lg text-slate-600 dark:text-slate-400">
+          Paste JSON and instantly generate TypeScript interfaces and type definitions.
         </p>
       </div>
 
-      <AdSenseAd label="TypeScript generator top" />
+
       <TypeScriptGeneratorClient />
 
       <AdSenseAd label="TypeScript generator bottom" />
